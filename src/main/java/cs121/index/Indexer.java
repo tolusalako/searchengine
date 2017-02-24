@@ -1,35 +1,69 @@
 package cs121.index;
 
 import java.io.IOException;
-import java.util.Date;
+import java.nio.file.Paths;
+import java.util.Collections;
 
+import javax.annotation.PostConstruct;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.TextNode;
+
+import cs121.config.WebPageSettings;
+import io.undertow.util.FileUtils;
 
 public class Indexer {
 
     public static final Logger LOG = LoggerFactory.getLogger(Indexer.class);
 
-    // @Autowired
-    // WebPageSettings wpSettings;
+    RestClient client;
 
-    public Indexer(Client client) {
+    @Autowired
+    WebPageSettings webPageSettings;
+    ObjectMapper mapper;
 
-        IndexResponse response;
+    public Indexer(RestClient client) {
+        this.client = client;
+        this.mapper = new ObjectMapper();
         try {
-            response = client.prepareIndex("twitter", "tweet", "1")
-                    .setSource(XContentFactory.jsonBuilder().startObject().field("user", "kimchy")
-                            .field("postDate", new Date()).field("message", "trying out Elasticsearch").endObject())
-                    .get();
+            HttpEntity entity = new NStringEntity(
+                    "{\n" + "    \"user\" : \"kimchy\",\n" + "    \"post_date\" : \"2009-11-15T14:12:12\",\n"
+                            + "    \"message\" : \"trying out Elasticsearch\"\n" + "}",
+                    ContentType.APPLICATION_JSON);
+            Response indexResponse = client.performRequest("PUT", "/twitter/tweet/1",
+                    Collections.<String, String> emptyMap(), entity);
 
-            LOG.info(response.toString());
+            LOG.info(indexResponse.toString());
         }
         catch (ElasticsearchException | IOException e) {
             LOG.error("", e);
         }
+    }
+
+    @PostConstruct
+    public void init() {
+        try {
+            String content = FileUtils.readFile(
+                    Paths.get(webPageSettings.getDir(), webPageSettings.getJson()).toAbsolutePath().toUri().toURL());
+            TextNode node = mapper.valueToTree(content);
+            LOG.info(node.toString());
+        }
+        catch (IOException e) {
+            LOG.error("Could not connect URLs", e);
+        }
+        LOG.info(webPageSettings.getDir());
+    }
+
+    public void createIndices() {
     }
 }

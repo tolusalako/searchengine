@@ -2,7 +2,7 @@ package cs121.providers;
 
 import javax.inject.Singleton;
 
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.RestClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -15,7 +15,7 @@ import cs121.index.Indexer;
 public class ClientProvider {
 
     @Autowired
-    Client client;
+    RestClient client;
 
     @Bean
     @Singleton
