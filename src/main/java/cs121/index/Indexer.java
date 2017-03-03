@@ -21,6 +21,7 @@ import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
@@ -37,6 +38,8 @@ public class Indexer {
 
     @Autowired
     WebPageSettings webPageSettings;
+    @Autowired
+    Environment env;
     Gson gson;
 
     public Indexer(RestClient client) {
@@ -46,6 +49,11 @@ public class Indexer {
 
     @PostConstruct
     public void init() {
+        if (env.getProperty("run_index").equals("false")) {
+            LOG.warn("Skipping indexing...");
+            return;
+        }
+
         try {
             String content = FileUtils.readFile(
                     Paths.get(webPageSettings.getDir(), webPageSettings.getJson()).toAbsolutePath().toUri().toURL());
@@ -134,7 +142,7 @@ public class Indexer {
             }
 
             try {
-                Thread.sleep(1000);
+                Thread.sleep(100);
             }
             catch (InterruptedException e) {
                 // TODO Auto-generated catch block

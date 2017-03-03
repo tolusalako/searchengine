@@ -56,11 +56,9 @@ configure(app()){
 		compile group: 'com.google.guava', name: 'guava', version: '19.0'
 		compile group: 'org.jsoup', name: 'jsoup', version: '1.9.2'
 		compile group: 'com.google.code.gson', name: 'gson', version: '2.8.0'
-
-
-		compile group: 'com.sun.jersey', name: 'jersey-client', version: '1.19.1'
+		compile group: 'org.thymeleaf', name: 'thymeleaf', version: '3.0.1.RELEASE'
+		compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version: '3.0.1.RELEASE'
 		compile group: 'org.elasticsearch.client', name: 'rest', version: '5.2.1'
-
 		compile group: 'javax.inject', name: 'javax.inject', version: '1'
 		//Test
 		testCompile("org.springframework.boot:spring-boot-starter-test:${springVersion}")
