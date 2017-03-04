@@ -6,9 +6,8 @@ import java.lang.reflect.Type;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
-
+import java.util.HashMap;
 import javax.annotation.PostConstruct;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
@@ -18,15 +17,14 @@ import org.elasticsearch.client.RestClient;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-
 import cs121.config.WebPageSettings;
 import io.undertow.util.FileUtils;
 
@@ -95,7 +93,7 @@ public class Indexer {
     public void indexFiles(File root, String name) {
 
         if (!root.exists()) {
-            LOG.warn("File {} DNE", root.getName());
+            LOG.warn("File {} does not exist.", root.getName());
             return;
         }
 
@@ -107,27 +105,39 @@ public class Indexer {
             parseAndIndex(root, name);
         }
         else {
-            LOG.warn("{} i neither a dir nor file.", root.getName());
+            LOG.warn("{} is neither a directory nor file.", root.getName());
         }
     }
 
     private void parseAndIndex(File file, String dirName) {
         try {
+        	HashMap<String, Integer> tokenMap = new HashMap<String, Integer>();
             Document doc = Jsoup.parse(file, "ISO-8859-1");
+  
+            Elements headers = doc.select("h1, h2, h3, h4, h5, h6");
             Element title = doc.select("title").first();
+            Elements bold = doc.select("B");
+            Element body = doc.body();
 
-            if (title == null)
+            if (headers == null || title == null || bold == null || body == null)
                 return;
-
-            String[] tokens = title.text().split("[^\\w']+");
-            String type = dirName;
-            String id = file.getName();
-            if (tokens != null && tokens.length > 0) {
-                for (String t : tokens) {
+            
+            String[] headerTokens = headers.text().split("[^\\w']+");
+            String[] titleTokens = title.text().split("[^\\w']+");
+            String[] boldTokens = bold.text().split("[^\\w']+");
+            String[] bodyTokens = body.text().split("[^\\w']+");
+            
+            computeWordFrequency(headerTokens, tokenMap);
+            computeWordFrequency(titleTokens, tokenMap);
+            computeWordFrequency(boldTokens, tokenMap);
+            computeWordFrequency(bodyTokens, tokenMap);
+            
+            if (tokenMap.size() > 0) {
+                for (String t : tokenMap.keySet()) {
                     JsonObject rootObj = new JsonObject();
                     JsonObject upsertObject = new JsonObject();
                     JsonObject scriptObject = new JsonObject();
-                    upsertObject.addProperty("postings", type + "/" + id);
+                    upsertObject.addProperty("postings", dirName + "/" + file.getName());
                     scriptObject.addProperty("inline",
                             "if (ctx._source.containsKey(\"postings\")) {ctx._source.postings+=\", \"+ params.postings;} else {ctx._source.postings= [params.postings];}");
                     scriptObject.add("params", upsertObject);
@@ -137,7 +147,9 @@ public class Indexer {
                     Response response = client.performRequest("POST",
                             "html_index/file_index/" + t.toLowerCase() + "/_update",
                             Collections.<String, String> emptyMap(), entity);
-                    LOG.debug("Indexed {}", t);
+                   LOG.debug("Indexed {}", t);
+                   //LOG.info("Word: {} - Frequency: {} - {}/{}", t, tokenMap.get(t), dirName, file.getName());
+
                 }
             }
 
@@ -145,7 +157,6 @@ public class Indexer {
                 Thread.sleep(100);
             }
             catch (InterruptedException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -154,5 +165,19 @@ public class Indexer {
             return;
         }
     }
-
+    
+    public void computeWordFrequency(String[] tokens, HashMap<String, Integer> map) {
+    	for (String token : tokens) {
+    		
+    		token = token.toLowerCase();
+    		Integer found = map.get(token);
+    		
+    		if (found == null) {
+    			map.put(token, 1);
+    		}
+         	else {
+         		map.put(token, found + 1);
+         	}
+    	}
+    }
 }
