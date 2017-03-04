@@ -117,20 +117,23 @@ public class Indexer {
             Elements headers = doc.select("h1, h2, h3, h4, h5, h6");
             Element title = doc.select("title").first();
             Elements bold = doc.select("B");
+            Elements italic = doc.select("I");
             Element body = doc.body();
 
-            if (headers == null || title == null || bold == null || body == null)
+            if (headers == null || title == null || bold == null || body == null || italic == null)
                 return;
             
             String[] headerTokens = headers.text().split("[^\\w']+");
             String[] titleTokens = title.text().split("[^\\w']+");
             String[] boldTokens = bold.text().split("[^\\w']+");
+            String[] italicTokens = italic.text().split("[^\\w']+");
             String[] bodyTokens = body.text().split("[^\\w']+");
             
             computeWordFrequency(headerTokens, tokenMap);
             computeWordFrequency(titleTokens, tokenMap);
             computeWordFrequency(boldTokens, tokenMap);
             computeWordFrequency(bodyTokens, tokenMap);
+            computeWordFrequency(italicTokens, tokenMap);
             
             if (tokenMap.size() > 0) {
                 for (String t : tokenMap.keySet()) {
