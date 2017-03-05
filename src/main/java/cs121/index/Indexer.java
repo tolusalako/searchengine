@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import javax.annotation.PostConstruct;
@@ -24,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import cs121.config.WebPageSettings;
 import io.undertow.util.FileUtils;
@@ -129,33 +133,33 @@ public class Indexer {
             String[] italicTokens = italic.text().split("[^\\w']+");
             String[] bodyTokens = body.text().split("[^\\w']+");
             
+            List<String> tokens = new ArrayList<String>();
+            tokens.addAll(Arrays.asList(headerTokens));
+            tokens.addAll(Arrays.asList(titleTokens));
+            tokens.addAll(Arrays.asList(boldTokens));
+            tokens.addAll(Arrays.asList(italicTokens));
+            tokens.addAll(Arrays.asList(bodyTokens));
+            
             computeWordFrequency(headerTokens, tokenMap);
             computeWordFrequency(titleTokens, tokenMap);
             computeWordFrequency(boldTokens, tokenMap);
             computeWordFrequency(bodyTokens, tokenMap);
             computeWordFrequency(italicTokens, tokenMap);
             
-            if (tokenMap.size() > 0) {
-                for (String t : tokenMap.keySet()) {
-                    JsonObject rootObj = new JsonObject();
-                    JsonObject upsertObject = new JsonObject();
-                    JsonObject scriptObject = new JsonObject();
-                    upsertObject.addProperty("postings", dirName + "/" + file.getName() + " - " + tokenMap.get(t));
-                    scriptObject.addProperty("inline",
-                            "if (ctx._source.containsKey(\"postings\")) {ctx._source.postings+=\", \"+ params.postings;} else {ctx._source.postings= [params.postings];}");
-                    scriptObject.add("params", upsertObject);
-                    rootObj.add("upsert", upsertObject);
-                    rootObj.add("script", scriptObject);
-                    HttpEntity entity = new NStringEntity(rootObj.toString(), ContentType.APPLICATION_JSON);
-                    Response response = client.performRequest("POST",
-                            "html_index/file_index/" + t.toLowerCase() + "/_update",
-                            Collections.<String, String> emptyMap(), entity);
-                   LOG.debug("Indexed {}", t);
-                   //LOG.info("Word: {} - Frequency: {} - {}/{}", t, tokenMap.get(t), dirName, file.getName());
-
-                }
+            JsonObject rootObj = new JsonObject();
+            JsonArray jsonArray = new JsonArray();
+            
+            for (String token : tokens) {
+            	if (!token.isEmpty())
+            		jsonArray.add(token.toLowerCase());
             }
-
+            
+            rootObj.add("tokens", jsonArray);
+            HttpEntity entity = new NStringEntity(rootObj.toString(), ContentType.APPLICATION_JSON);
+            Response response = client.performRequest("PUT",
+                    "html_index/" + dirName + "/" + file.getName(),
+                    Collections.<String, String> emptyMap(), entity);
+                        
             try {
                 Thread.sleep(100);
             }
@@ -164,7 +168,7 @@ public class Indexer {
             }
         }
         catch (IOException e) {
-            LOG.error("Could not open file {}", file.getName(), e);
+            LOG.error("Could not open file {}", file.getName());
             return;
         }
     }
