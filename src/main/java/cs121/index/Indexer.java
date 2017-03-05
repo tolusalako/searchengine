@@ -140,7 +140,7 @@ public class Indexer {
                     JsonObject rootObj = new JsonObject();
                     JsonObject upsertObject = new JsonObject();
                     JsonObject scriptObject = new JsonObject();
-                    upsertObject.addProperty("postings", dirName + "/" + file.getName());
+                    upsertObject.addProperty("postings", dirName + "/" + file.getName() + " - " + tokenMap.get(t));
                     scriptObject.addProperty("inline",
                             "if (ctx._source.containsKey(\"postings\")) {ctx._source.postings+=\", \"+ params.postings;} else {ctx._source.postings= [params.postings];}");
                     scriptObject.add("params", upsertObject);
