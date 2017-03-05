@@ -4,6 +4,6 @@ The purpose of this project is to index and rank a list of downloaded webpages, 
 
 The web pages can be downloaded from: http://mondego.ics.uci.edu/datasets/webpages_raw.zip
 
-######Update `config/application.properties
-webpages.dir=<Path of extracted zip>
-run_index=<True for the first run>
+######Update `config/application.properties`
+webpages.dir=`<Path of extracted zip>`
+run_index=`<True for the first run>`
