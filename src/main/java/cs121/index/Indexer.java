@@ -96,14 +96,22 @@ public class Indexer {
         	HashMap<String, Integer> tokenMap = new HashMap<String, Integer>();
             Document doc = Jsoup.parse(file, "ISO-8859-1");
             String url = map.get(dirName + "/" + file.getName());
-  
+            
+//            //Iterate through all possible tags
+//            Elements elements = doc.select("*");
+//            for (Element e : elements) {
+//            	if (!e.text().isEmpty())
+//            		LOG.info(e.tagName() + ": " + e.text());
+//            }
+            
             Elements headers = doc.select("h1, h2, h3, h4, h5, h6");
             Element title = doc.select("title").first();
             Elements bold = doc.select("B");
             Elements italic = doc.select("I");
             Element body = doc.body();
+            Elements links = doc.select("a");
 
-            if (headers == null || title == null || bold == null || body == null || italic == null)
+            if (headers == null || title == null || bold == null || body == null || italic == null || links == null)
                 return;
             
             String[] headerTokens = headers.text().split("[^\\w']+");
@@ -111,6 +119,7 @@ public class Indexer {
             String[] boldTokens = bold.text().split("[^\\w']+");
             String[] italicTokens = italic.text().split("[^\\w']+");
             String[] bodyTokens = body.text().split("[^\\w']+");
+            String[] linkTokens = links.text().split("[^\\w']+");
             
             List<String> tokens = new ArrayList<String>();
             tokens.addAll(Arrays.asList(headerTokens));
@@ -118,12 +127,7 @@ public class Indexer {
             tokens.addAll(Arrays.asList(boldTokens));
             tokens.addAll(Arrays.asList(italicTokens));
             tokens.addAll(Arrays.asList(bodyTokens));
-            
-            computeWordFrequency(headerTokens, tokenMap);
-            computeWordFrequency(titleTokens, tokenMap);
-            computeWordFrequency(boldTokens, tokenMap);
-            computeWordFrequency(bodyTokens, tokenMap);
-            computeWordFrequency(italicTokens, tokenMap);
+            tokens.addAll(Arrays.asList(linkTokens));
             
             JsonObject rootObj = new JsonObject();
             JsonArray jsonArray = new JsonArray();
