@@ -132,9 +132,9 @@ public class Indexer {
             	if (!token.isEmpty())
             		jsonArray.add(token.toLowerCase());
             }
-                        
-            rootObj.add("tokens", jsonArray);
+                     
             rootObj.addProperty("url", url);
+            rootObj.add("tokens", jsonArray);
             
             HttpEntity entity = new NStringEntity(rootObj.toString(), ContentType.APPLICATION_JSON);
             
