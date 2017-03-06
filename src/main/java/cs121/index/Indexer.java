@@ -127,7 +127,7 @@ public class Indexer {
 
             JsonArray titleArray = new JsonArray();
             
-            for (String t : titleTokens) {
+            for (String t : Arrays.asList(title.text().split(splitToken))) {
             	if (!t.isEmpty())
             		titleArray.add(t);
             }
@@ -164,18 +164,4 @@ public class Indexer {
         }
     }
 
-    public void computeWordFrequency(String[] tokens, HashMap<String, Integer> map) {
-        for (String token : tokens) {
-
-            token = token.toLowerCase();
-            Integer found = map.get(token);
-
-            if (found == null) {
-                map.put(token, 1);
-            }
-            else {
-                map.put(token, found + 1);
-            }
-        }
-    }
 }
