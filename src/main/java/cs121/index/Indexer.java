@@ -61,10 +61,9 @@ public class Indexer {
                     Paths.get(webPageSettings.getDir(), webPageSettings.getJson()).toAbsolutePath().toUri().toURL());
             Type type = new TypeToken<Map<String, String>>() {
             }.getType();
-            Map<String, String> myMap = gson.fromJson(content, type);
-            createIndices(myMap);
+            Map<String, String> urlMap = gson.fromJson(content, type);
             File root = new File(webPageSettings.getDir());
-            indexFiles(root, root.getName());
+            indexFiles(root, root.getName(), urlMap);
         }
 
         catch (IOException e) {
@@ -73,28 +72,7 @@ public class Indexer {
         LOG.info(webPageSettings.getDir());
     }
 
-    public void createIndices(Map<String, String> map) {
-        for (String key : map.keySet()) {
-            try {
-
-                String type = key.split("/")[0];
-                String id = key.split("/")[1];
-
-                HttpEntity entity = new NStringEntity("{\n" + "    \"url\" : \"" + map.get(key) + "\"\n" + "}",
-                        ContentType.APPLICATION_JSON);
-
-                Response response = client.performRequest("PUT", "ics_index/" + type + "/" + id,
-                        Collections.<String, String> emptyMap(), entity);
-
-            }
-            catch (ElasticsearchException | IOException e) {
-                LOG.error("", e);
-            }
-
-        }
-    }
-
-    public void indexFiles(File root, String name) {
+    public void indexFiles(File root, String name, Map<String, String> map) {
 
         if (!root.exists()) {
             LOG.warn("File {} does not exist.", root.getName());
@@ -103,20 +81,21 @@ public class Indexer {
 
         if (root.isDirectory()) {
             for (File file : root.listFiles())
-                indexFiles(file, root.getName());
+                indexFiles(file, root.getName(), map);
         }
         else if (root.isFile()) {
-            parseAndIndex(root, name);
+            parseAndIndex(root, name, map);
         }
         else {
             LOG.warn("{} is neither a directory nor file.", root.getName());
         }
     }
 
-    private void parseAndIndex(File file, String dirName) {
+    private void parseAndIndex(File file, String dirName, Map<String, String> map) {
         try {
         	HashMap<String, Integer> tokenMap = new HashMap<String, Integer>();
             Document doc = Jsoup.parse(file, "ISO-8859-1");
+            String url = map.get(dirName + "/" + file.getName());
   
             Elements headers = doc.select("h1, h2, h3, h4, h5, h6");
             Element title = doc.select("title").first();
@@ -153,9 +132,12 @@ public class Indexer {
             	if (!token.isEmpty())
             		jsonArray.add(token.toLowerCase());
             }
-            
+                        
             rootObj.add("tokens", jsonArray);
+            rootObj.addProperty("url", url);
+            
             HttpEntity entity = new NStringEntity(rootObj.toString(), ContentType.APPLICATION_JSON);
+            
             Response response = client.performRequest("PUT",
                     "html_index/" + dirName + "/" + file.getName(),
                     Collections.<String, String> emptyMap(), entity);
@@ -168,7 +150,7 @@ public class Indexer {
             }
         }
         catch (IOException e) {
-            LOG.error("Could not open file {}", file.getName());
+            LOG.error("Could not open file {}", dirName + "/" + file.getName());
             return;
         }
     }
