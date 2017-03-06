@@ -72,11 +72,26 @@ public class SearchController {
                         builder.append(" ");
                         count++;
                     }
+                    
                     String url = source.get("url").getAsString();
                     if (!(url.startsWith("http") || url.startsWith("www"))) {
                         url = "http://" + url;
                     }
-                    result.add(new QueryItem("Temp title", url, builder.toString(), obj.get("_score").getAsDouble()));
+                    
+                    StringBuilder title = new StringBuilder();
+                    try {
+                    	JsonArray titleArray = source.getAsJsonArray("title");
+                    	Iterator<JsonElement> iterator = titleArray.iterator();
+                    	while (iterator.hasNext()) {
+                    		title.append(iterator.next().getAsString());
+                    		title.append(" ");
+                    	}
+                    }
+                    catch (Exception e) {
+                    	title.append("");
+                    }
+                    
+                    result.add(new QueryItem(title.toString(), url, builder.toString(), obj.get("_score").getAsDouble()));
                     LOG.info(obj.toString());
                 }
 
