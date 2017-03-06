@@ -125,12 +125,20 @@ public class Indexer {
             JsonObject rootObj = new JsonObject();
             JsonArray jsonArray = new JsonArray();
 
+            JsonArray titleArray = new JsonArray();
+            
+            for (String t : titleTokens) {
+            	if (!t.isEmpty())
+            		titleArray.add(t);
+            }
+
             for (String token : tokens) {
                 if (!token.isEmpty())
                     jsonArray.add(token.toLowerCase());
             }
 
             rootObj.addProperty("url", url);
+            rootObj.add("title", titleArray);
             rootObj.add("tokens", jsonArray);
 
             HttpEntity entity = new NStringEntity(rootObj.toString(), ContentType.APPLICATION_JSON);
