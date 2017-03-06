@@ -7,7 +7,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -100,6 +99,10 @@ public class Indexer {
         try {
             Document doc = Jsoup.parse(file, "ISO-8859-1");
             String url = map.get(dirName + "/" + file.getName());
+            
+            JsonObject rootObj = new JsonObject();
+            JsonArray jsonArray = new JsonArray();
+            JsonArray titleArray = new JsonArray();
 
             Elements headers = doc.select("h1, h2, h3, h4, h5, h6");
             Element title = doc.select("title").first();
@@ -107,12 +110,19 @@ public class Indexer {
             Elements italic = doc.select("I");
             Element body = doc.body();
             Elements links = doc.select("a");
-
+            
             List<String> tokens = new ArrayList<>();
             if (null != headers)
                 tokens.addAll(Arrays.asList(headers.text().split(splitToken)));
-            if (null != title)
-                tokens.addAll(Arrays.asList(title.text().split(splitToken)));
+            
+            if (null != title) {
+            	String[]titleTokens = title.text().split(splitToken);
+            	tokens.addAll(Arrays.asList(titleTokens));
+            	for (String t : titleTokens) {
+            		if (!t.isEmpty())
+            			titleArray.add(t);
+            	}
+            }
             if (null != bold)
                 tokens.addAll(Arrays.asList(bold.text().split(splitToken)));
             if (null != italic)
@@ -122,23 +132,16 @@ public class Indexer {
             if (null != links)
                 tokens.addAll(Arrays.asList(links.text().split(splitToken)));
 
-            JsonObject rootObj = new JsonObject();
-            JsonArray jsonArray = new JsonArray();
-
-            JsonArray titleArray = new JsonArray();
-            
-            for (String t : Arrays.asList(title.text().split(splitToken))) {
-            	if (!t.isEmpty())
-            		titleArray.add(t);
-            }
-
             for (String token : tokens) {
                 if (!token.isEmpty())
                     jsonArray.add(token.toLowerCase());
             }
 
             rootObj.addProperty("url", url);
-            rootObj.add("title", titleArray);
+            
+            if (titleArray.size() != 0)
+            	rootObj.add("title", titleArray);
+            	
             rootObj.add("tokens", jsonArray);
 
             HttpEntity entity = new NStringEntity(rootObj.toString(), ContentType.APPLICATION_JSON);
