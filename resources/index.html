@@ -34,10 +34,20 @@
                      </div>
                      <div class="row center">
                        <div class="input-field col s12">
-                           <a class="waves-effect waves-light btn" type="submit">Search</a>
+                           <input class="waves-effect waves-light btn" type="submit" />
                        </div>
                      </div>
                    </form>
+                 </div>
+                 <div class="row">
+                     <div th:if="${not #lists.isEmpty(result)}">
+                         <div th:each="res : ${result}">
+                             <b><h5 class="row" th:text="${res.title}"></h5></b>
+                             <a class="row" th:text="${res.url}" th:href="${res.url}"></a>
+                             <div class="row" th:text="${res.description}"></div>
+                             <br><br>
+                         </div>
+                     </div>
                  </div>
              </div>
          </div>

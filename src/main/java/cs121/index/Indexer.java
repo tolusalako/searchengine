@@ -7,10 +7,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
+
 import javax.annotation.PostConstruct;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
@@ -25,10 +27,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+
 import cs121.config.WebPageSettings;
 import io.undertow.util.FileUtils;
 
@@ -51,7 +55,7 @@ public class Indexer {
 
     @PostConstruct
     public void init() {
-        if (env.getProperty("run_index").equals("false")) {
+        if ("false".equals(env.getProperty("run_index"))) {
             LOG.warn("Skipping indexing...");
             return;
         }
@@ -92,18 +96,11 @@ public class Indexer {
     }
 
     private void parseAndIndex(File file, String dirName, Map<String, String> map) {
+        String splitToken = "[^\\w']+";
         try {
-        	HashMap<String, Integer> tokenMap = new HashMap<String, Integer>();
             Document doc = Jsoup.parse(file, "ISO-8859-1");
             String url = map.get(dirName + "/" + file.getName());
-            
-//            //Iterate through all possible tags
-//            Elements elements = doc.select("*");
-//            for (Element e : elements) {
-//            	if (!e.text().isEmpty())
-//            		LOG.info(e.tagName() + ": " + e.text());
-//            }
-            
+
             Elements headers = doc.select("h1, h2, h3, h4, h5, h6");
             Element title = doc.select("title").first();
             Elements bold = doc.select("B");
@@ -111,41 +108,36 @@ public class Indexer {
             Element body = doc.body();
             Elements links = doc.select("a");
 
-            if (headers == null || title == null || bold == null || body == null || italic == null || links == null)
-                return;
-            
-            String[] headerTokens = headers.text().split("[^\\w']+");
-            String[] titleTokens = title.text().split("[^\\w']+");
-            String[] boldTokens = bold.text().split("[^\\w']+");
-            String[] italicTokens = italic.text().split("[^\\w']+");
-            String[] bodyTokens = body.text().split("[^\\w']+");
-            String[] linkTokens = links.text().split("[^\\w']+");
-            
-            List<String> tokens = new ArrayList<String>();
-            tokens.addAll(Arrays.asList(headerTokens));
-            tokens.addAll(Arrays.asList(titleTokens));
-            tokens.addAll(Arrays.asList(boldTokens));
-            tokens.addAll(Arrays.asList(italicTokens));
-            tokens.addAll(Arrays.asList(bodyTokens));
-            tokens.addAll(Arrays.asList(linkTokens));
-            
+            List<String> tokens = new ArrayList<>();
+            if (null != headers)
+                tokens.addAll(Arrays.asList(headers.text().split(splitToken)));
+            if (null != title)
+                tokens.addAll(Arrays.asList(title.text().split(splitToken)));
+            if (null != bold)
+                tokens.addAll(Arrays.asList(bold.text().split(splitToken)));
+            if (null != italic)
+                tokens.addAll(Arrays.asList(italic.text().split(splitToken)));
+            if (null != body)
+                tokens.addAll(Arrays.asList(body.text().split(splitToken)));
+            if (null != links)
+                tokens.addAll(Arrays.asList(links.text().split(splitToken)));
+
             JsonObject rootObj = new JsonObject();
             JsonArray jsonArray = new JsonArray();
-            
+
             for (String token : tokens) {
-            	if (!token.isEmpty())
-            		jsonArray.add(token.toLowerCase());
+                if (!token.isEmpty())
+                    jsonArray.add(token.toLowerCase());
             }
-                     
+
             rootObj.addProperty("url", url);
             rootObj.add("tokens", jsonArray);
-            
+
             HttpEntity entity = new NStringEntity(rootObj.toString(), ContentType.APPLICATION_JSON);
-            
-            Response response = client.performRequest("PUT",
-                    "html_index/" + dirName + "/" + file.getName(),
+
+            Response response = client.performRequest("PUT", "html_index/" + dirName + "/" + file.getName(),
                     Collections.<String, String> emptyMap(), entity);
-                        
+
             try {
                 Thread.sleep(100);
             }
@@ -153,29 +145,29 @@ public class Indexer {
                 e.printStackTrace();
             }
         }
-        
+
         catch (ElasticsearchException e) {
-        	LOG.error("ElasticsearchException thrown {}", e);
+            LOG.error("ElasticsearchException thrown {}", e);
         }
-        
+
         catch (IOException e) {
             LOG.error("Could not open file {}", dirName + "/" + file.getName());
             return;
         }
     }
-    
+
     public void computeWordFrequency(String[] tokens, HashMap<String, Integer> map) {
-    	for (String token : tokens) {
-    		
-    		token = token.toLowerCase();
-    		Integer found = map.get(token);
-    		
-    		if (found == null) {
-    			map.put(token, 1);
-    		}
-         	else {
-         		map.put(token, found + 1);
-         	}
-    	}
+        for (String token : tokens) {
+
+            token = token.toLowerCase();
+            Integer found = map.get(token);
+
+            if (found == null) {
+                map.put(token, 1);
+            }
+            else {
+                map.put(token, found + 1);
+            }
+        }
     }
 }
