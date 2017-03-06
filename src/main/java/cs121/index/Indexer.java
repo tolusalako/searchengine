@@ -93,7 +93,6 @@ public class Indexer {
 
     private void parseAndIndex(File file, String dirName, Map<String, String> map) {
         try {
-        	HashMap<String, Integer> tokenMap = new HashMap<String, Integer>();
             Document doc = Jsoup.parse(file, "ISO-8859-1");
             String url = map.get(dirName + "/" + file.getName());
             
@@ -131,6 +130,12 @@ public class Indexer {
             
             JsonObject rootObj = new JsonObject();
             JsonArray jsonArray = new JsonArray();
+            JsonArray titleArray = new JsonArray();
+            
+            for (String t : titleTokens) {
+            	if (!t.isEmpty())
+            		titleArray.add(t);
+            }
             
             for (String token : tokens) {
             	if (!token.isEmpty())
@@ -138,6 +143,7 @@ public class Indexer {
             }
                      
             rootObj.addProperty("url", url);
+            rootObj.add("title", titleArray);
             rootObj.add("tokens", jsonArray);
             
             HttpEntity entity = new NStringEntity(rootObj.toString(), ContentType.APPLICATION_JSON);
