@@ -149,6 +149,11 @@ public class Indexer {
                 e.printStackTrace();
             }
         }
+        
+        catch (ElasticsearchException e) {
+        	LOG.error("ElasticsearchException thrown {}", e);
+        }
+        
         catch (IOException e) {
             LOG.error("Could not open file {}", dirName + "/" + file.getName());
             return;
