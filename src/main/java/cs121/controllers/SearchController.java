@@ -74,7 +74,7 @@ public class SearchController {
                     }
                     
                     String url = source.get("url").getAsString();
-                    if (!(url.startsWith("http") || url.startsWith("www"))) {
+                    if (!url.startsWith("http") || url.startsWith("www")) {
                         url = "http://" + url;
                     }
                     
