@@ -110,6 +110,8 @@ public class Indexer {
             Elements italic = doc.select("I");
             Element body = doc.body();
             Elements links = doc.select("a");
+            Elements paragraphs = doc.select("p");
+            Elements strong = doc.select("strong");
             
             List<String> tokens = new ArrayList<>();
             if (null != headers)
@@ -131,6 +133,10 @@ public class Indexer {
                 tokens.addAll(Arrays.asList(body.text().split(splitToken)));
             if (null != links)
                 tokens.addAll(Arrays.asList(links.text().split(splitToken)));
+            if (null != paragraphs)
+                tokens.addAll(Arrays.asList(paragraphs.text().split(splitToken)));
+            if (null != strong)
+                tokens.addAll(Arrays.asList(strong.text().split(splitToken)));
 
             for (String token : tokens) {
                 if (!token.isEmpty())
