@@ -9,9 +9,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.PostConstruct;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
@@ -26,14 +24,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
 import cs121.config.WebPageSettings;
 import io.undertow.util.FileUtils;
+import io.undertow.util.StatusCodes;
 
 public class Indexer {
 
@@ -154,6 +151,9 @@ public class Indexer {
 
             Response response = client.performRequest("PUT", "html_index/" + dirName + "/" + file.getName(),
                     Collections.<String, String> emptyMap(), entity);
+            
+            if (response.getStatusLine().getStatusCode() != StatusCodes.OK)
+                LOG.error("Could not complete index request for file {}/{}", dirName, file.getName());
 
             try {
                 Thread.sleep(100);
