@@ -99,7 +99,10 @@ public class Indexer {
             
             JsonObject rootObj = new JsonObject();
             JsonArray jsonArray = new JsonArray();
+            
+            JsonArray headerArray = new JsonArray();
             JsonArray titleArray = new JsonArray();
+            JsonArray boldArray = new JsonArray();
 
             Elements headers = doc.select("h1, h2, h3, h4, h5, h6");
             Element title = doc.select("title").first();
@@ -111,19 +114,24 @@ public class Indexer {
             Elements strong = doc.select("strong");
             
             List<String> tokens = new ArrayList<>();
-            if (null != headers)
-                tokens.addAll(Arrays.asList(headers.text().split(splitToken)));
+            if (null != headers) {
+            	String[] headerTokens = headers.text().split(splitToken);
+            	tokens.addAll(Arrays.asList(headerTokens));
+            	insertTokens(headerTokens, headerArray);
+            }
             
             if (null != title) {
-            	String[]titleTokens = title.text().split(splitToken);
+            	String[] titleTokens = title.text().split(splitToken);
             	tokens.addAll(Arrays.asList(titleTokens));
-            	for (String t : titleTokens) {
-            		if (!t.isEmpty())
-            			titleArray.add(t);
-            	}
+            	insertTokens(titleTokens, titleArray);
             }
-            if (null != bold)
+            
+            if (null != bold) {
+            	String[] boldTokens = bold.text().split(splitToken);
                 tokens.addAll(Arrays.asList(bold.text().split(splitToken)));
+                insertTokens(boldTokens, boldArray);
+            }
+            
             if (null != italic)
                 tokens.addAll(Arrays.asList(italic.text().split(splitToken)));
             if (null != body)
@@ -144,6 +152,10 @@ public class Indexer {
             
             if (titleArray.size() != 0)
             	rootObj.add("title", titleArray);
+            if (headerArray.size() != 0)
+            	rootObj.add("header_tokens", headerArray);
+            if (boldArray.size() != 0)
+            	rootObj.add("bold_tokens", boldArray);
             	
             rootObj.add("tokens", jsonArray);
 
@@ -171,6 +183,13 @@ public class Indexer {
             LOG.error("Could not open file {}", dirName + "/" + file.getName());
             return;
         }
+    }
+    
+    public void insertTokens(String[] tokens, JsonArray jsonArr) {
+    	for (String token : tokens) {
+    		if (!token.isEmpty())
+    			jsonArr.add(token);
+    	}
     }
 
 }
