@@ -80,9 +80,12 @@ public class SearchController {
         	JsonObject matchBold = new JsonObject();
         	matchBold.add("match", shouldMatchBold);
         	
-        	
+
         	JsonObject shouldMatchTokens = new JsonObject();
-        	shouldMatchTokens.addProperty("tokens", query);
+        	JsonObject tokens = new JsonObject();
+        	tokens.addProperty("query", query);
+        	tokens.addProperty("boost", 4);
+        	shouldMatchTokens.add("tokens", tokens);
         	JsonObject matchTokens = new JsonObject();
         	matchTokens.add("match", shouldMatchTokens);
 
