@@ -15,9 +15,16 @@ public class ElasticsearchConfiguration {
 
     @Bean
     public RestClient client() {
+        System.out.println(environment.getProperty("elasticsearch.host"));
         RestClient client = RestClient.builder(new HttpHost(environment.getProperty("elasticsearch.host"),
                 Integer.valueOf(environment.getProperty("elasticsearch.port")), "http")).build();
-
+        try {
+            Thread.sleep(1000);
+        }
+        catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
         return client;
     }
 

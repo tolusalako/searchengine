@@ -21,7 +21,9 @@
                    <form class="col s12" method="post" action="/">
                      <div class="row center">
                        <div class="input-field col s12">
-                        <h5 class="valign"><b>CS 121 Search</b></h5><br>
+                        <h1 class="valign"><b>W&Theta;&Theta;GLE</b></h1>
+                         <h5 class="valign">Make Wooglin Proud</h5><br>
+                         <sup>CS 121 Search</sup>
                        </div>
                      </div>
                      <div class="row">
@@ -39,12 +41,15 @@
                      </div>
                    </form>
                  </div>
+                 <div class="row center" th:if="${stats != null}">
+                     <span th:text="${'Found ' + stats.totalResponses + ' results in ' + stats.totalTime + ' ms.'}"></span>
+                 </div>
                  <div class="row">
                      <div th:if="${not #lists.isEmpty(result)}">
                          <div th:each="res : ${result}">
                              <b><h5 class="row" th:text="${res.title}"></h5></b>
                              <a class="row" th:text="${res.url}" th:href="${res.url}"></a>
-                             <div class="row" th:text="${res.description}"></div>
+                             <div class="row" th:utext="${res.description}"></div>
                              <br><br>
                          </div>
                      </div>
