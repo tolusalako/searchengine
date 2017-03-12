@@ -17,6 +17,7 @@ public class ElasticsearchConfiguration {
     public RestClient client() {
         RestClient client = RestClient.builder(new HttpHost(environment.getProperty("elasticsearch.host"),
                 Integer.valueOf(environment.getProperty("elasticsearch.port")), "http")).build();
+
         return client;
     }
 
