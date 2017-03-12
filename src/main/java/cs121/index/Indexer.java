@@ -4,10 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import javax.annotation.PostConstruct;
 import org.apache.http.HttpEntity;
@@ -83,82 +80,93 @@ public class Indexer {
             for (File file : root.listFiles())
                 indexFiles(file, root.getName(), map);
         }
+        
         else if (root.isFile()) {
             parseAndIndex(root, name, map);
         }
+        
         else {
             LOG.warn("{} is neither a directory nor file.", root.getName());
         }
+        
     }
 
     private void parseAndIndex(File file, String dirName, Map<String, String> map) {
+    	
         String splitToken = "[^\\w']+";
+        
         try {
             Document doc = Jsoup.parse(file, "ISO-8859-1");
-            String url = map.get(dirName + "/" + file.getName());
             
             JsonObject rootObj = new JsonObject();
-            JsonArray jsonArray = new JsonArray();
+            rootObj.addProperty("url", map.get(dirName + "/" + file.getName()));
             
             JsonArray headerArray = new JsonArray();
             JsonArray titleArray = new JsonArray();
             JsonArray boldArray = new JsonArray();
+            JsonArray italicArray = new JsonArray();
+            JsonArray bodyArray = new JsonArray();
+            JsonArray linksArray = new JsonArray();
+            JsonArray paragraphArray = new JsonArray();
+            JsonArray strongArray = new JsonArray();
 
             Elements headers = doc.select("h1, h2, h3, h4, h5, h6");
             Element title = doc.select("title").first();
-            Elements bold = doc.select("B");
-            Elements italic = doc.select("I");
+            Elements bold = doc.select("B, b");
+            Elements italic = doc.select("I, i");
             Element body = doc.body();
             Elements links = doc.select("a");
-            Elements paragraphs = doc.select("p");
+            Elements paragraph = doc.select("p");
             Elements strong = doc.select("strong");
             
-            List<String> tokens = new ArrayList<>();
-            if (null != headers) {
-            	String[] headerTokens = headers.text().split(splitToken);
-            	tokens.addAll(Arrays.asList(headerTokens));
-            	insertTokens(headerTokens, headerArray);
-            }
+            if (null != headers)
+            	insertTokens(headers.text().split(splitToken), headerArray);
             
-            if (null != title) {
-            	String[] titleTokens = title.text().split(splitToken);
-            	tokens.addAll(Arrays.asList(titleTokens));
-            	insertTokens(titleTokens, titleArray);
-            }
+            if (null != title)
+            	insertTokens(title.text().split(splitToken), titleArray);
             
-            if (null != bold) {
-            	String[] boldTokens = bold.text().split(splitToken);
-                tokens.addAll(Arrays.asList(bold.text().split(splitToken)));
-                insertTokens(boldTokens, boldArray);
-            }
+            if (null != bold)
+                insertTokens(bold.text().split(splitToken), boldArray);
             
             if (null != italic)
-                tokens.addAll(Arrays.asList(italic.text().split(splitToken)));
+            	insertTokens(italic.text().split(splitToken), italicArray);
+            
             if (null != body)
-                tokens.addAll(Arrays.asList(body.text().split(splitToken)));
+            	insertTokens(body.text().split(splitToken), bodyArray);
+
             if (null != links)
-                tokens.addAll(Arrays.asList(links.text().split(splitToken)));
-            if (null != paragraphs)
-                tokens.addAll(Arrays.asList(paragraphs.text().split(splitToken)));
+            	insertTokens(links.text().split(splitToken), linksArray);
+            
+            if (null != paragraph)
+            	insertTokens(paragraph.text().split(splitToken), paragraphArray);
+            
             if (null != strong)
-                tokens.addAll(Arrays.asList(strong.text().split(splitToken)));
-
-            for (String token : tokens) {
-                if (!token.isEmpty())
-                    jsonArray.add(token.toLowerCase());
-            }
-
-            rootObj.addProperty("url", url);
+            	insertTokens(strong.text().split(splitToken), strongArray);
             
             if (titleArray.size() != 0)
-            	rootObj.add("title", titleArray);
+            	rootObj.add("title_tokens", titleArray);
+            
             if (headerArray.size() != 0)
             	rootObj.add("header_tokens", headerArray);
+            
             if (boldArray.size() != 0)
             	rootObj.add("bold_tokens", boldArray);
-            	
-            rootObj.add("tokens", jsonArray);
-
+            
+            if (italicArray.size() != 0)
+            	rootObj.add("italic_tokens", italicArray);
+            
+            if (bodyArray.size() != 0)
+            	rootObj.add("body_tokens", bodyArray);
+            
+            if (linksArray.size() != 0)
+            	rootObj.add("link_tokens", linksArray);
+            
+            if (paragraphArray.size() != 0)
+            	rootObj.add("paragraph_tokens", paragraphArray);
+            
+            if (strongArray.size() != 0)
+            	rootObj.add("strong_tokens", strongArray);
+           
             HttpEntity entity = new NStringEntity(rootObj.toString(), ContentType.APPLICATION_JSON);
 
             Response response = client.performRequest("PUT", "html_index/" + dirName + "/" + file.getName(),

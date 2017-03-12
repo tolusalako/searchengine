@@ -32,8 +32,10 @@ import io.undertow.util.StatusCodes;
 @RestController
 @CrossOrigin(origins = "*", methods = { RequestMethod.GET })
 public class SearchController {
+	
     private static Logger LOG = LoggerFactory.getLogger(SearchController.class);
     public static final int DESC_LENGTH = 15;
+    private String query;
 
     @Autowired
     RestClient client;
@@ -45,8 +47,10 @@ public class SearchController {
 
     @RequestMapping(value = "/", method = RequestMethod.POST)
     public ModelAndView resultsPage(Model model, @RequestBody MultiValueMap<String, String> body) {
-        String query = body.get("query").get(0);
+    	
+        this.query = body.get("query").get(0);
         List<QueryItem> result = new ArrayList<>();
+        
         try {
         	
         	JsonObject rootObject = new JsonObject();
@@ -55,43 +59,17 @@ public class SearchController {
         	
         	rootObject.add("query", boolObject);
         	boolObject.add("bool", shouldObject);
-        	
-        	JsonObject shouldMatchTitle = new JsonObject();
-        	JsonObject title = new JsonObject();
-        	title.addProperty("query", query);
-        	title.addProperty("boost", 6);
-        	shouldMatchTitle.add("title", title);
-        	JsonObject matchTitle = new JsonObject();
-        	matchTitle.add("match", shouldMatchTitle);
-        	
-        	JsonObject shouldMatchHeaders = new JsonObject();
-        	JsonObject headers = new JsonObject();
-        	headers.addProperty("query", query);
-        	headers.addProperty("boost", 4);
-        	shouldMatchHeaders.add("header_tokens", headers);
-        	JsonObject matchHeaders = new JsonObject();
-        	matchHeaders.add("match", shouldMatchHeaders);
-        	
-        	JsonObject shouldMatchBold = new JsonObject();
-        	JsonObject bold = new JsonObject();
-        	bold.addProperty("query", query);
-        	bold.addProperty("boost", 2);
-        	shouldMatchBold.add("bold_tokens", bold);
-        	JsonObject matchBold = new JsonObject();
-        	matchBold.add("match", shouldMatchBold);
-        	
-
-        	JsonObject shouldMatchTokens = new JsonObject();
-        	JsonObject tokens = new JsonObject();
-        	tokens.addProperty("query", query);
-        	tokens.addProperty("boost", 4);
-        	shouldMatchTokens.add("tokens", tokens);
-        	JsonObject matchTokens = new JsonObject();
-        	matchTokens.add("match", shouldMatchTokens);
-
+      	
         	JsonArray shouldArray = new JsonArray();
-        	shouldArray.add(matchTokens);
-        	shouldArray.add(matchTitle);
+        	shouldArray.add(constructJsonSearchObject("url", 3));
+        	shouldArray.add(constructJsonSearchObject("title_tokens", 8));
+        	shouldArray.add(constructJsonSearchObject("header_tokens", 6));
+        	shouldArray.add(constructJsonSearchObject("bold_tokens", 4));
+        	shouldArray.add(constructJsonSearchObject("italic_tokens", 2));
+        	shouldArray.add(constructJsonSearchObject("body_tokens", 1));
+        	shouldArray.add(constructJsonSearchObject("link_tokens", 2));
+        	shouldArray.add(constructJsonSearchObject("paragraph_tokens", 2));
+        	shouldArray.add(constructJsonSearchObject("strong_tokens", 3));
 
         	shouldObject.add("should", shouldArray);
 
@@ -111,16 +89,38 @@ public class SearchController {
                 for (int i = 0; i < hitsArray.size(); i++) {
                     JsonObject obj = hitsArray.get(i).getAsJsonObject();
                     JsonObject source = obj.get("_source").getAsJsonObject();
-                    JsonArray descArray = source.getAsJsonArray("tokens");
-                    StringBuilder builder = new StringBuilder();
 
                     // Create description
-                    int count = 0;
-                    Iterator<JsonElement> iter = descArray.iterator();
-                    while (iter.hasNext() && count < DESC_LENGTH) {
-                        builder.append(iter.next().getAsString());
-                        builder.append(" ");
-                        count++;
+                    StringBuilder description = new StringBuilder();
+                    try {
+	                    JsonArray descArray = source.getAsJsonArray("body_tokens");
+	                	Iterator<JsonElement> iter = descArray.iterator();
+	                	
+	                    int count = 0;
+	                    while (iter.hasNext() && count < DESC_LENGTH) {
+	                        description.append(iter.next().getAsString());
+	                        description.append(" ");
+	                        count++;
+	                    }
+                    }
+	               
+	                catch (Exception e) {
+	                	description.append("");
+	                }
+                    
+                    // Create title
+                    StringBuilder title = new StringBuilder();
+                    try {
+                    	JsonArray titleArray = source.getAsJsonArray("title_tokens");
+                    	Iterator<JsonElement> iterator = titleArray.iterator();
+                    	while (iterator.hasNext()) {
+                    		title.append(iterator.next().getAsString());
+                    		title.append(" ");
+                    	}
+                    }
+                    
+                    catch (Exception e) {
+                    	title.append("");
                     }
                     
                     String url = source.get("url").getAsString();
@@ -128,29 +128,35 @@ public class SearchController {
                         url = "http://" + url;
                     }
                     
-                    StringBuilder titleString = new StringBuilder();
-                    try {
-                    	JsonArray titleArray = source.getAsJsonArray("title");
-                    	Iterator<JsonElement> iterator = titleArray.iterator();
-                    	while (iterator.hasNext()) {
-                    		titleString.append(iterator.next().getAsString());
-                    		titleString.append(" ");
-                    	}
-                    }
-                    catch (Exception e) {
-                    	titleString.append("");
-                    }
-                    
-                    result.add(new QueryItem(titleString.toString(), url, builder.toString(), obj.get("_score").getAsDouble()));
+                    result.add(new QueryItem(title.toString(), url, description.toString(), obj.get("_score").getAsDouble()));
                     LOG.info(obj.toString());
                 }
 
             }
         }
+        
         catch (IOException e) {
-            LOG.error("Could not perform request", e);
+            LOG.error("Could not perform request. Error: ", e);
         }
+        
         model.addAttribute("result", result);
         return new ModelAndView("index");
     }
+    
+    public JsonObject constructJsonSearchObject(String htmlTag, int boostValue) {
+    	
+    	JsonObject tag = new JsonObject();
+    	tag.addProperty("query", this.query);
+    	tag.addProperty("boost", boostValue);
+    	
+    	JsonObject content = new JsonObject();
+    	content.add(htmlTag, tag);
+    	
+    	JsonObject matchObj = new JsonObject();
+    	matchObj.add("match", content);
+    	
+    	return matchObj;
+    	
+    }
+    
 }
