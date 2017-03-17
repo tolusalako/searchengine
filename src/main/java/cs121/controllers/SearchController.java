@@ -67,12 +67,12 @@ public class SearchController {
             boolObject.add("bool", shouldObject);
 
             JsonArray shouldArray = new JsonArray();
-            shouldArray.add(constructJsonSearchObject("title_tokens", 10));
-            shouldArray.add(constructJsonSearchObject("url", 5));
-            shouldArray.add(constructJsonSearchObject("link_tokens", 5));
-            shouldArray.add(constructJsonSearchObject("header_tokens", 7));
-            shouldArray.add(constructJsonSearchObject("bold_tokens", 5));
-            shouldArray.add(constructJsonSearchObject("strong_tokens", 5));
+            shouldArray.add(constructJsonSearchObject("title_tokens", 5));
+            shouldArray.add(constructJsonSearchObject("url", 3));
+            shouldArray.add(constructJsonSearchObject("link_tokens", 3));
+            shouldArray.add(constructJsonSearchObject("header_tokens", 4));
+            shouldArray.add(constructJsonSearchObject("bold_tokens", 3));
+            shouldArray.add(constructJsonSearchObject("strong_tokens", 3));
             shouldArray.add(constructJsonSearchObject("italic_tokens", 2));
             shouldArray.add(constructJsonSearchObject("body_tokens", 1));
             shouldArray.add(constructJsonSearchObject("paragraph_tokens", 1));
@@ -143,7 +143,6 @@ public class SearchController {
 
                     result.add(new QueryItem(title.toString(), url, description.toString(),
                             obj.get("_score").getAsDouble()));
-                    LOG.info(obj.toString());
                 }
 
             }
